@@ -32,7 +32,14 @@ app.post("/participants", async(req, res) =>{
 		const errors = validation.error.details.map((detail) => detail.message);
 		return res.status(422).send(errors);
 	}
-	await db.collection("participants").insertOne({name});
+	try{
+
+		await db.collection("participants").insertOne({name, lastStatus: Date.now()});
+		res.sendStatus(201);
+		
+	}catch(err){
+		res.status(500).send(err.message);
+	}
 });
 
 app.listen(PORT, ()=>print(`Server online in port: ${PORT}`));
