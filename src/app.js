@@ -33,10 +33,13 @@ app.post("/participants", async(req, res) =>{
 		return res.status(422).send(errors);
 	}
 	try{
+		const nameDuplicated = await db.collection("participants").findOne({name:name});
+		
+		if (nameDuplicated) return res.status(409).send("Esse nome já está em uso");
 
 		await db.collection("participants").insertOne({name, lastStatus: Date.now()});
 		res.sendStatus(201);
-		
+
 	}catch(err){
 		res.status(500).send(err.message);
 	}
