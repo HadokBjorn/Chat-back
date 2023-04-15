@@ -63,5 +63,41 @@ app.get("/participants", async(req, res)=>{
 	}
 });
 
+app.post("/messages", async(req, res)=>{
+	const messageSchema = joi.object({
+		to: joi.string().min(3).max(30).required(),
+		text: joi.string().required(),
+		type: joi.string().required().valid("private").valid("private_message")
+	});
+	const {user} = req.headers;
+	const {to, text, type} = req.body;
+	const validation = messageSchema.validate(req.body);
+
+	if(!user){
+		return res.status(422).send("Necessário envio de Usuário pelo Header");
+	}
+
+	if (validation.error) {
+		const errors = validation.error.details.map((detail) => detail.message);
+		return res.status(422).send(errors);
+	}
+	try{
+		const existUser = await db.collection("participants").findOne({name:user});
+		print(existUser);
+		print(user);
+		if (!existUser) return res.status(404).send("Usuário não encontrado");
+		await db.collection("messages").insertOne({
+			from: user,
+			to,
+			text,
+			type, 
+			time: dayjs().format("HH:mm:ss")
+		});
+		res.sendStatus(201);
+	}catch(err){
+		res.status(500).send(err.message);
+	}
+	
+});
 
 app.listen(PORT, ()=>print(`Server online in port: ${PORT}`));
