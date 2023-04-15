@@ -1,19 +1,38 @@
 import express,{json} from "express";
-import cors from "cors";
-import {MongoClient} from "mongodb";
+import { MongoClient } from "mongodb";
 import dotenv from "dotenv";
+import cors from "cors";
+import joi from "joi";
 
 const app = express();
 const PORT = 5000;
+const print = (value) => console.log(value);
 app.use(json());
 app.use(cors());
 dotenv.config();
 
-let db
 const mongoClient = new MongoClient(process.env.DATABASE_URL);
-mongoClient.connect()
-.then(() => db = mongoClient.db())
-.catch((err) => console.log(err.message))
 
+try{
+	await mongoClient.connect();
+}catch(err){
+	print(err.message);
+}
 
-app.listen(PORT, ()=>{console.log(`Server online in port: ${PORT}`)})
+const db = mongoClient.db();
+
+app.post("/participants", async(req, res) =>{
+	const nameSchema = joi.object({
+		name: joi.string().min(3).max(30).required()
+	});
+	const {name} = req.body;
+	const validation = nameSchema.validate({name});
+
+	if (validation.error) {
+		const errors = validation.error.details.map((detail) => detail.message);
+		return res.status(422).send(errors);
+	}
+	await db.collection("participants").insertOne({name});
+});
+
+app.listen(PORT, ()=>print(`Server online in port: ${PORT}`));
