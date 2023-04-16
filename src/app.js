@@ -143,7 +143,33 @@ app.get("/messages", async(req, res)=>{
 	}catch(err){
 		res.status(500).send(err.message);
 	}
+});
 
+app.post("/status", async(req, res)=>{
+	const User = req.headers.user;
+	const userValidation = nameSchema.validate({name: User});
+
+	if (userValidation.error) {
+		const errors = userValidation.error.details.map((detail) => detail.message);
+		return res.status(404).send(errors);
+	}
+	try{
+		const existUser = await db.collection("participants").findOne({name:User});
+		
+		if (!existUser) return res.status(404).send("Usuário não encontrado");
+
+		const updateStatus = await db.collection("participants").updateOne(
+			{name: User},
+			{$set: {lastStatus: Date.now()}}
+		);
+		
+		if (updateStatus.matchedCount === 0) return res.sendStatus(404);
+
+		res.sendStatus(200);
+		
+	}catch(err){
+		res.status(500).send(err.message);
+	}
 });
 
 app.listen(PORT, ()=>print(`Server online in port: ${PORT}`));
