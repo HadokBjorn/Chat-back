@@ -180,6 +180,12 @@ app.post("/status", async(req, res)=>{
 	}
 });
 
-
+setInterval(() => {
+	db.collection("participants").deleteMany(
+		{
+			lastStatus: {$lt: Date.now()-10000}
+		}
+	);
+}, 15000);
 
 app.listen(PORT, ()=>print(`Server online in port: ${PORT}`));
