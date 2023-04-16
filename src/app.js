@@ -1,5 +1,6 @@
 import express,{json} from "express";
 import { MongoClient } from "mongodb";
+import { stripHtml } from "string-strip-html";
 import dotenv from "dotenv";
 import cors from "cors";
 import joi from "joi";
@@ -12,6 +13,7 @@ app.use(json());
 app.use(cors());
 dotenv.config();
 
+// eslint-disable-next-line no-undef
 const mongoClient = new MongoClient(process.env.DATABASE_URL);
 
 try{
@@ -25,9 +27,11 @@ const nameSchema = joi.object({
 	name: joi.string().min(3).max(30).required()
 });
 
+//print(stripHtml(someHtml).result);
+
 app.post("/participants", async(req, res) =>{
 	
-	const {name} = req.body;
+	const name = stripHtml(req.body.name).result.trim();
 	const validation = nameSchema.validate({name});
 
 	if (validation.error) {
@@ -70,10 +74,14 @@ app.post("/messages", async(req, res)=>{
 		text: joi.string().required(),
 		type: joi.string().required().valid("private").valid("private_message")
 	});
-	const User = req.headers.user;
+	const User = stripHtml(req.headers.user).result.trim();
 	const {to, text, type} = req.body;
 	const userValidation = nameSchema.validate({name: User});
-	const validation = messageSchema.validate(req.body);
+	const validation = messageSchema.validate({
+		to: stripHtml(to).result.trim(),
+		text:stripHtml(text).result.trim(),
+		type: stripHtml(type).result.trim()
+	});
 
 	if (userValidation.error) {
 		const errors = userValidation.error.details.map((detail) => detail.message);
@@ -91,9 +99,9 @@ app.post("/messages", async(req, res)=>{
 		if (!existUser) return res.status(404).send("Usuário não encontrado");
 		await db.collection("messages").insertOne({
 			from: User,
-			to,
-			text,
-			type, 
+			to: stripHtml(to).result.trim(),
+			text:stripHtml(text).result.trim(),
+			type: stripHtml(type).result.trim(),
 			time: dayjs().format("HH:mm:ss")
 		});
 		res.sendStatus(201);
@@ -104,7 +112,7 @@ app.post("/messages", async(req, res)=>{
 
 app.get("/messages", async(req, res)=>{
 	const { limit } = req.query;
-	const User = req.headers.user;
+	const User = stripHtml(req.headers.user).result.trim();
 	const limitSchema = joi.object({
 		limit: joi.number().integer().min(1)
 	});
@@ -146,7 +154,7 @@ app.get("/messages", async(req, res)=>{
 });
 
 app.post("/status", async(req, res)=>{
-	const User = req.headers.user;
+	const User = stripHtml(req.headers.user).result.trim();
 	const userValidation = nameSchema.validate({name: User});
 
 	if (userValidation.error) {
@@ -166,10 +174,12 @@ app.post("/status", async(req, res)=>{
 		if (updateStatus.matchedCount === 0) return res.sendStatus(404);
 
 		res.sendStatus(200);
-		
+
 	}catch(err){
 		res.status(500).send(err.message);
 	}
 });
+
+
 
 app.listen(PORT, ()=>print(`Server online in port: ${PORT}`));
