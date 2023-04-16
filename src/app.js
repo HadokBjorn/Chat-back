@@ -100,7 +100,50 @@ app.post("/messages", async(req, res)=>{
 	}catch(err){
 		res.status(500).send(err.message);
 	}
+});
+
+app.get("/messages", async(req, res)=>{
+	const { limit } = req.query;
+	const User = req.headers.user;
+	const limitSchema = joi.object({
+		limit: joi.number().integer().min(1)
+	});
+	const userValidation = nameSchema.validate({name: User});
+
+	if (userValidation.error) {
+		const errors = userValidation.error.details.map((detail) => detail.message);
+		return res.status(422).send(errors);
+	}
 	
+
+	try{
+		const existUser = await db.collection("participants").findOne({name:User});
+		
+		if (!existUser) return res.status(404).send("Usuário não encontrado");
+
+		const messages = await db.collection("messages").find({
+			$or:[
+				{to:"Todos"},
+				{to:User},
+				{from:User} 
+			]}).toArray();
+
+		if (limit) {
+			const limitValidation = limitSchema.validate({limit: limit});
+			if (limitValidation.error) {
+				const errors = limitValidation.error.details.map((detail) => detail.message);
+				return res.status(422).send(errors);
+			}
+			const page = [...messages].reverse().slice(0,limit);
+
+			return res.send(page);
+		}
+
+		res.send(messages);
+	}catch(err){
+		res.status(500).send(err.message);
+	}
+
 });
 
 app.listen(PORT, ()=>print(`Server online in port: ${PORT}`));
