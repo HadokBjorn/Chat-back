@@ -265,13 +265,13 @@ app.put("/messages/:ID_DA_MENSAGEM", async(req, res)=>{
 		});
 
 		res.send("Mensagem atualizada com sucesso!");
-		
+
 	}catch(err){
 		res.status(500).send(err.message);
 	}
 });
 
-/* setInterval(async() => {
+setInterval(async() => {
 	try{
 		const userOffline = await db.collection("participants").find(
 			{
@@ -301,6 +301,6 @@ app.put("/messages/:ID_DA_MENSAGEM", async(req, res)=>{
 		print(err.message);
 	}
 	
-}, 15000); */
+}, 15000);
 
 app.listen(PORT, ()=>print(`Server online in port: ${PORT}`));
