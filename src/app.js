@@ -180,12 +180,38 @@ app.post("/status", async(req, res)=>{
 	}
 });
 
-setInterval(() => {
-	db.collection("participants").deleteMany(
-		{
-			lastStatus: {$lt: Date.now()-10000}
+setInterval(async() => {
+	try{
+		const userOffline = await db.collection("participants").find(
+			{
+				lastStatus: {$lt: Date.now()-10000}
+			}
+		).toArray();
+
+		if(userOffline){
+	
+			userOffline.map(async(u)=>{
+	
+	
+				await db.collection("messages").insertOne({
+					from: u.name, 
+					to: "Todos", 
+					text: "sai da sala...",
+					type: "status",
+					time: dayjs().format("HH:mm:ss")
+				});
+
+				const deleteUser = await db.collection("participants").deleteOne({name: u.name});
+
+				if (deleteUser.deletedCount === 0) return print("Usuário não encontrado");
+
+			});
 		}
-	);
+	}catch(err){
+		print(err.message);
+	}
+		
+	
 }, 15000);
 
 app.listen(PORT, ()=>print(`Server online in port: ${PORT}`));
