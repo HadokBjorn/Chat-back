@@ -27,7 +27,6 @@ const nameSchema = joi.object({
 	name: joi.string().min(3).max(30).required()
 });
 
-//print(stripHtml(someHtml).result);
 
 app.post("/participants", async(req, res) =>{
 	
@@ -208,7 +207,7 @@ app.delete("/messages/:ID_DA_MENSAGEM", async(req, res)=>{
 
 		if(!findMessage)return res.sendStatus(404);
 		if(findMessage.from !== User ) return res.sendStatus(401);
-
+		
 		await db.collection("messages").deleteOne({_id: new ObjectId(ID_DA_MENSAGEM)});
 		res.send("Item deletado com sucesso!");
 	}catch(err){
@@ -216,7 +215,61 @@ app.delete("/messages/:ID_DA_MENSAGEM", async(req, res)=>{
 	}
 });
 
+app.put("/messages/:ID_DA_MENSAGEM", async(req, res)=>{
+	const messageSchema = joi.object({
+		to: joi.string().min(3).max(30).required(),
+		text: joi.string().required(),
+		type: joi.string().required().valid("private").valid("private_message")
+	});
+	const User = stripHtml(req.headers.user).result.trim();
+	const { ID_DA_MENSAGEM } = req.params;
+	const {to, text, type} = req.body;
+	const userValidation = nameSchema.validate({name: User});
+	const validation = messageSchema.validate({
+		to: stripHtml(to).result.trim(),
+		text:stripHtml(text).result.trim(),
+		type: stripHtml(type).result.trim()
+	});
 
+	if (userValidation.error) {
+		const errors = userValidation.error.details.map((detail) => detail.message);
+		return res.status(422).send(errors);
+	}
+
+	if (validation.error) {
+		const errors = validation.error.details.map((detail) => detail.message);
+		return res.status(422).send(errors);
+	}
+
+	try{
+		const existUser = await db.collection("participants").findOne({name:User});
+		
+		if (!existUser) return res.status(404).send("Usuário não encontrado");
+
+		const findMessage = await db.collection("messages").findOne({_id: new ObjectId(ID_DA_MENSAGEM)});
+
+		if(!findMessage)return res.sendStatus(404);
+		if(findMessage.from !== User ) return res.sendStatus(401);
+		
+		//await db.collection("messages").deleteOne({_id: new ObjectId(ID_DA_MENSAGEM)});
+		
+		await db.collection("messages").updateOne({_id: new ObjectId(ID_DA_MENSAGEM)},{
+			$set: 
+			{
+				from: User,
+				to: stripHtml(to).result.trim(),
+				text:stripHtml(text).result.trim(),
+				type: stripHtml(type).result.trim(),
+				time: dayjs().format("HH:mm:ss")
+			}
+		});
+
+		res.send("Mensagem atualizada com sucesso!");
+		
+	}catch(err){
+		res.status(500).send(err.message);
+	}
+});
 
 /* setInterval(async() => {
 	try{
