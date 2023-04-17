@@ -80,7 +80,7 @@ app.post("/messages", async(req, res)=>{
 		to: stripHtml(to).result.trim(),
 		text:stripHtml(text).result.trim(),
 		type: stripHtml(type).result.trim()
-	});
+	},{ abortEarly: false });
 
 	if (userValidation.error) {
 		const errors = userValidation.error.details.map((detail) => detail.message);
@@ -229,7 +229,7 @@ app.put("/messages/:ID_DA_MENSAGEM", async(req, res)=>{
 		to: stripHtml(to).result.trim(),
 		text:stripHtml(text).result.trim(),
 		type: stripHtml(type).result.trim()
-	});
+	},{ abortEarly: false });
 
 	if (userValidation.error) {
 		const errors = userValidation.error.details.map((detail) => detail.message);
