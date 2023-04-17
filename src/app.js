@@ -1,5 +1,5 @@
 import express,{json} from "express";
-import { MongoClient } from "mongodb";
+import { MongoClient, ObjectId } from "mongodb";
 import { stripHtml } from "string-strip-html";
 import dotenv from "dotenv";
 import cors from "cors";
@@ -161,6 +161,7 @@ app.post("/status", async(req, res)=>{
 		const errors = userValidation.error.details.map((detail) => detail.message);
 		return res.status(404).send(errors);
 	}
+
 	try{
 		const existUser = await db.collection("participants").findOne({name:User});
 		
@@ -180,7 +181,44 @@ app.post("/status", async(req, res)=>{
 	}
 });
 
-setInterval(async() => {
+app.delete("/messages/:ID_DA_MENSAGEM", async(req, res)=>{
+	const User = stripHtml(req.headers.user).result.trim();
+	const { ID_DA_MENSAGEM } = req.params;
+	const paramSchema =  joi.object({
+		id: joi.string().hex()
+	});
+	const validation = paramSchema.validate({id: ID_DA_MENSAGEM});
+	const userValidation = nameSchema.validate({name: User});
+	
+	if (validation.error) {
+		const errors = validation.error.details.map((detail) => detail.message);
+		return res.status(404).send(errors);
+	}
+
+	if (userValidation.error) {
+		const errors = userValidation.error.details.map((detail) => detail.message);
+		return res.status(404).send(errors);
+	}
+
+	try{
+		const existUser = await db.collection("participants").findOne({name:User});
+		
+		if (!existUser) return res.status(404).send("Usuário não encontrado");
+		const findMessage = await db.collection("messages").findOne({_id: new ObjectId(ID_DA_MENSAGEM)});
+
+		if(!findMessage)return res.sendStatus(404);
+		if(findMessage.from !== User ) return res.sendStatus(401);
+
+		await db.collection("messages").deleteOne({_id: new ObjectId(ID_DA_MENSAGEM)});
+		res.send("Item deletado com sucesso!");
+	}catch(err){
+		res.status(500).send(err.message);
+	}
+});
+
+
+
+/* setInterval(async() => {
 	try{
 		const userOffline = await db.collection("participants").find(
 			{
@@ -191,7 +229,6 @@ setInterval(async() => {
 		if(userOffline){
 	
 			userOffline.map(async(u)=>{
-	
 	
 				await db.collection("messages").insertOne({
 					from: u.name, 
@@ -210,8 +247,7 @@ setInterval(async() => {
 	}catch(err){
 		print(err.message);
 	}
-		
 	
-}, 15000);
+}, 15000); */
 
 app.listen(PORT, ()=>print(`Server online in port: ${PORT}`));
