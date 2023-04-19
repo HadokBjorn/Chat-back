@@ -71,7 +71,7 @@ app.post("/messages", async(req, res)=>{
 	const messageSchema = joi.object({
 		to: joi.string().min(3).max(30).required(),
 		text: joi.string().required(),
-		type: joi.string().required().valid("private").valid("private_message")
+		type: joi.string().required().valid("message").valid("private_message")
 	});
 	const User = stripHtml(req.headers.user).result.trim();
 	const {to, text, type} = req.body;
